@@ -55,7 +55,7 @@ void Current_Thread::cache_tid()
     }
 }
 
-std::atomic_int32_t Thread::num_created_ = 0;
+std::atomic_int32_t Thread::num_created_(0);
 
 Thread::Thread(Thread_Func func, const string& n)
     : started_(false), joined_(false), pthread_id_(0),
