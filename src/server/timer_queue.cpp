@@ -71,15 +71,58 @@ Timer_Queue::~Timer_Queue()
 Timer_ID Timer_Queue::add_timer(const Timer::Timer_Callback& cb, Timestamp when, double interval)
 {
     Timer* timer = new Timer(std::move(cb), when, interval);
+    loop_->run_in_loop(std::bind(&Timer_Queue::add_timer_in_loop, this, timer));
+    return Timer_ID(timer, timer->sequence());
+}
+
+void Timer_Queue::add_timer_in_loop(Timer* timer)
+{
+    loop_->assert_in_loop_thread();
+    bool earliest = insert(timer);
+    if (earliest)
+        reset_timerfd(timerfd_, timer->expiration());
 }
 
 std::vector<Timer_Queue::Entry> Timer_Queue::get_expired(Timestamp now)
 {
     std::vector<Entry> expired;
-    Entry border = std::make_pair(now, std::unique_ptr<Timer>(reinterpret_cast<Timer*>(UINTPTR_MAX)));
+    Entry border = std::make_pair(now, reinterpret_cast<Timer*>(UINTPTR_MAX));
     Timer_List::iterator ite = timers_.lower_bound(border);
     assert(ite == timers_.end() || now < ite->first);
     std::copy(timers_.begin(), ite, back_inserter(expired));
     timers_.erase(timers_.begin(), ite);
     return expired;
+}
+
+bool Timer_Queue::insert(Timer* timer)
+{
+    loop_->assert_in_loop_thread();
+    bool earliest = false;
+    Timestamp when = timer->expiration();
+    Timer_List::iterator ite = timers_.begin();
+    if (ite == timers_.end() || when < ite->first)
+        earliest = true;
+
+    {
+        auto result = timers_.emplace(when, timer);
+        assert(result.second);
+    }
+    return earliest;
+}
+
+void Timer_Queue::handle_read()
+{
+    loop_->assert_in_loop_thread();
+    Timestamp now(Timestamp::now());
+    read_timerfd(timerfd_, now);
+    std::vector<Entry> expired = get_expired(now);
+    for (const Entry& ite : expired)
+        ite.second->run();
+
+    reset(expired, now);
+}
+
+void Timer_Queue::reset(const std::vector<Entry>& expired, Timestamp now)
+{
+
 }

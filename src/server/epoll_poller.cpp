@@ -1,5 +1,6 @@
 #include "epoll_poller.h"
 #include "channel.h"
+#include "timer_queue.h"
 #include <error.h>
 #include <string.h>
 #include <unistd.h>
@@ -146,4 +147,21 @@ const char* Epoll_Poller::operation_to_string(int op)
         assert(false);
         return "Unknown Operation";
     }
+}
+
+Timer_ID Event_Loop::run_at(const Timestamp& time, const Timer::Timer_Callback& cb)
+{
+    return timer_queue_->add_timer(cb, time, 0.0);
+}
+
+Timer_ID Event_Loop::run_after(double delay, const Timer::Timer_Callback& cb)
+{
+    Timestamp time(add_time(Timestamp::now(), delay));
+    return run_at(time, cb);
+}
+
+Timer_ID Event_Loop::run_every(double interval, const Timer::Timer_Callback& cb)
+{
+    Timestamp time(add_time(Timestamp::now(), interval));
+    return timer_queue_->add_timer(cb, time, interval);
 }

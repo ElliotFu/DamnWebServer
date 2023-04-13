@@ -56,6 +56,7 @@ public:
     void set_index(int idx) { index_ = idx; }
 
     Event_Loop* owner_loop() { return loop_; }
+    void remove();
 
 private:
     static string events_to_string(int fd, int events);

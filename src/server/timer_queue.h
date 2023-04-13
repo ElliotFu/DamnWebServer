@@ -6,6 +6,7 @@
 #include "base/timestamp.h"
 #include <memory>
 #include <set>
+#include <vector>
 
 class Event_Loop;
 class Timer_ID;
@@ -19,10 +20,11 @@ public:
     Timer_ID add_timer(const Timer::Timer_Callback& cb, Timestamp when, double interval);
     // void cancel(Timer_ID timer_id);
 
-private:
-    typedef std::pair<Timestamp, std::unique_ptr<Timer>> Entry;
+    typedef std::pair<Timestamp, Timer*> Entry;
     typedef std::set<Entry> Timer_List;
 
+private:
+    void add_timer_in_loop(Timer* timer);
     // called when timerfd alarms
     void handle_read();
     // move out all expired timers

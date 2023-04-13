@@ -77,3 +77,10 @@ string Channel::events_to_string(int fd, int events)
 
     return oss.str();
 }
+
+void Channel::remove()
+{
+    assert(is_none_event());
+    // added_to_loop_ = false;
+    loop_->remove_channel(this);
+}
