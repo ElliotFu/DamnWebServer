@@ -6,6 +6,7 @@ set(SERVER_SRC
     epoll_poller.cpp
     event_loop.cpp
     event_loop_thread.cpp
+    acceptor.cpp
 )
 
 include_directories(${PROJECT_SOURCE_DIR}/src)

@@ -8,3 +8,6 @@ target_link_libraries(event_loop_with_timer_and_wakeup_test server)
 
 add_executable(event_loop_thread_test event_loop_thread_test.cpp)
 target_link_libraries(event_loop_thread_test server)
+
+add_executable(acceptor_test acceptor_test.cpp)
+target_link_libraries(acceptor_test server)
