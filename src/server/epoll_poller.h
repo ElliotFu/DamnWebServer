@@ -11,7 +11,7 @@ public:
     Epoll_Poller(Event_Loop* loop);
     ~Epoll_Poller() override;
 
-    Channel_List poll(int timeout_ms) override;
+    Timestamp poll(int timeout_ms, Channel_List* active_channels) override;
     void update_channel(Channel* channel) override;
     void remove_channel(Channel* channel) override;
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base/noncopyable.h"
+#include "base/timestamp.h"
 #include <functional>
 #include <string>
 
@@ -12,13 +13,16 @@ class Channel : Noncopyable
 {
 public:
     typedef std::function<void()> Event_Callback;
+    typedef std::function<void(Timestamp)> Read_Event_Callback;
+
     Channel(Event_Loop* loop, int fd);
     ~Channel();
 
-    void handle_event();
-    void set_read_callback(const Event_Callback& cb) { read_callback_ = cb; }
-    void set_write_callback(const Event_Callback& cb) { write_callback_ = cb; }
-    void set_error_callback(const Event_Callback& cb) { error_callback_ = cb; }
+    void handle_event(Timestamp receive_time);
+    void set_read_callback(Read_Event_Callback cb) { read_callback_ = std::move(cb); }
+    void set_write_callback(Event_Callback cb) { write_callback_ = std::move(cb); }
+    void set_close_callback(Event_Callback cb) { close_callback_ = std::move(cb); }
+    void set_error_callback(Event_Callback cb) { error_callback_ = std::move(cb); }
 
     string revents_to_string() const;
     string events_to_string() const;
@@ -72,7 +76,10 @@ private:
     int revents_;   // 目前活动的事件
     int index_;
 
-    Event_Callback read_callback_;
+    bool event_handling_;
+
+    Read_Event_Callback read_callback_;
     Event_Callback write_callback_;
+    Event_Callback close_callback_;
     Event_Callback error_callback_;
 };

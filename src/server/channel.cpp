@@ -8,12 +8,13 @@ const int Channel::k_read_event = POLLIN | POLLPRI;
 const int Channel::k_write_event = POLLOUT;
 
 Channel::Channel(Event_Loop* loop, int fd_arg)
-    : loop_(loop), fd_(fd_arg), events_(0), revents_(0), index_(-1)
+    : loop_(loop), fd_(fd_arg), events_(0), revents_(0), index_(-1), event_handling_(false)
 {
 }
 
 Channel::~Channel()
 {
+    assert(!event_handling_);
     // if (loop_->is_in_loop_thread()) {
     //     assert(!loop_->has_channel(this));
     // }
@@ -24,10 +25,19 @@ void Channel::update()
     loop_->update_channel(this);
 }
 
-void Channel::handle_event()
+void Channel::handle_event(Timestamp receive_time)
 {
+    event_handling_ = true;
     if (revents_ & POLLNVAL) {
+        printf("Channel::handle_event() POLLNVAL\n");
         // LOG_WARN << "Channel::handle_event() POLLNVAL";
+    }
+
+    if ((revents_ & POLLHUP) && !(revents_ & POLLIN)) {
+        printf("Channel::handle_event() POLLHUP\n");
+        // LOG_WARN << "Channel::handle_event() POLLHUP"
+        if (close_callback_)
+            close_callback_();
     }
 
     if (revents_ & (POLLERR | POLLNVAL)) {
@@ -37,13 +47,15 @@ void Channel::handle_event()
 
     if (revents_ & (POLLIN | POLLPRI | POLLRDHUP)) {
         if (read_callback_)
-            read_callback_();
+            read_callback_(receive_time);
     }
 
     if (revents_ & POLLOUT) {
         if (write_callback_)
             write_callback_();
     }
+
+    event_handling_ = false;
 }
 
 string Channel::revents_to_string() const

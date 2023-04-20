@@ -54,6 +54,7 @@ private:
     std::atomic<bool> quit_;
     bool calling_pending_functors_;
     const pid_t thread_id_;
+    Timestamp poll_return_time_;
     std::unique_ptr<Poller> poller_;
     Channel_List active_channels_;
     std::unique_ptr<Timer_Queue> timer_queue_;

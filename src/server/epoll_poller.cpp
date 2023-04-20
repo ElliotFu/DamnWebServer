@@ -1,4 +1,5 @@
 #include "epoll_poller.h"
+#include "base/timestamp.h"
 #include "channel.h"
 #include "timer_queue.h"
 #include <error.h>
@@ -25,7 +26,7 @@ Epoll_Poller::~Epoll_Poller()
     ::close(epollfd_);
 }
 
-Epoll_Poller::Channel_List Epoll_Poller::poll(int timeout_ms)
+Timestamp Epoll_Poller::poll(int timeout_ms, Channel_List* active_channels)
 {
     int num_events = ::epoll_wait(epollfd_,
                                   events_.data(),
@@ -33,11 +34,11 @@ Epoll_Poller::Channel_List Epoll_Poller::poll(int timeout_ms)
                                   timeout_ms);
 
     int saved_errno = errno;
-    Channel_List active_channels;
+    Timestamp now(Timestamp::now());
     if (num_events > 0)
     {
         // LOG_TRACE << num_events << " events happened";
-        fill_active_channels(num_events, &active_channels);
+        fill_active_channels(num_events, active_channels);
         if (static_cast<size_t>(num_events) == events_.size())
             events_.resize(events_.size() * 2);
     } else if (num_events == 0) {
@@ -50,7 +51,7 @@ Epoll_Poller::Channel_List Epoll_Poller::poll(int timeout_ms)
         }
     }
 
-    return active_channels;
+    return now;
 }
 
 void Epoll_Poller::fill_active_channels(int num_events, Channel_List* active_channels) const

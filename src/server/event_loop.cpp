@@ -59,9 +59,10 @@ void Event_Loop::loop()
     looping_ = true;
     quit_ = false;
     while (!quit_) {
-        active_channels_ = poller_->poll(k_poll_time_ms);
+        active_channels_.clear();
+        poll_return_time_ = poller_->poll(k_poll_time_ms, &active_channels_);
         for (Channel_List::iterator ite = active_channels_.begin(); ite != active_channels_.end(); ++ite) {
-            (*ite)->handle_event();
+            (*ite)->handle_event(poll_return_time_);
         }
         do_pending_functors();
     }

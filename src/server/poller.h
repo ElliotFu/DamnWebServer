@@ -6,6 +6,7 @@
 #include <map>
 
 class Channel;
+class Timestamp;
 
 class Poller : Noncopyable
 {
@@ -15,7 +16,7 @@ public:
     Poller(Event_Loop* loop);
     virtual ~Poller();
 
-    virtual Channel_List poll(int timeout_ms) = 0;
+    virtual Timestamp poll(int timeout_ms, Channel_List* time) = 0;
     virtual void update_channel(Channel* channel) = 0;
     virtual void remove_channel(Channel* channel) = 0;
 

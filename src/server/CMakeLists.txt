@@ -7,6 +7,9 @@ set(SERVER_SRC
     event_loop.cpp
     event_loop_thread.cpp
     acceptor.cpp
+    buffer.cpp
+    tcp_connection.cpp
+    tcp_server.cpp
 )
 
 include_directories(${PROJECT_SOURCE_DIR}/src)
