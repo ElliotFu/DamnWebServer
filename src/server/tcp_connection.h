@@ -46,6 +46,8 @@ public:
     void send(const std::string& message);
     void shutdown();
 
+    void set_tcp_no_delay(bool on);
+
 private:
     enum State_E { k_disconnected, k_connecting, k_connected, k_disconnecting };
 

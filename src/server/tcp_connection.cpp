@@ -1,6 +1,7 @@
 #include "tcp_connection.h"
 #include "channel.h"
 #include "event_loop.h"
+#include <netinet/tcp.h>
 #include <string.h>
 
 Tcp_Connection::Tcp_Connection(Event_Loop* loop,
@@ -178,4 +179,10 @@ void Tcp_Connection::send_in_loop(const std::string& message)
         if (!channel_->is_writing())
             channel_->enable_writing();
     }
+}
+
+void Tcp_Connection::set_tcp_no_delay(bool on)
+{
+    int optval = on ? 1 : 0;
+    ::setsockopt(socket_fd_, IPPROTO_TCP, TCP_NODELAY, &optval, sizeof optval);
 }
