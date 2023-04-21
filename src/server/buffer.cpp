@@ -45,15 +45,11 @@ ssize_t Buffer::read_fd(int fd, int *saveErrno)
     const ssize_t n = ::readv(fd, vec, iovcnt);
 
     if (n < 0)
-    {
         *saveErrno = errno;
-    }
-    else if (n <= writable) // Buffer的可写缓冲区已经够存储读出来的数据了
-    {
+    else if (static_cast<size_t>(n) <= writable) // Buffer的可写缓冲区已经够存储读出来的数据了
         writer_index_ += n;
-    }
-    else // extrabuf里面也写入了n-writable长度的数据
-    {
+    else {
+        // extrabuf里面也写入了n-writable长度的数据
         writer_index_ = buffer_.size();
         append(extrabuf, n - writable); // 对buffer_扩容 并将extrabuf存储的另一部分数据追加至buffer_
     }
@@ -66,8 +62,7 @@ ssize_t Buffer::write_fd(int fd, int *saveErrno)
 {
     ssize_t n = ::write(fd, peek(), readable_bytes());
     if (n < 0)
-    {
         *saveErrno = errno;
-    }
+
     return n;
 }

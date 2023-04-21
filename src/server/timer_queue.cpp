@@ -54,7 +54,8 @@ Timer_Queue::Timer_Queue(Event_Loop* loop)
     : loop_(loop),
       timerfd_(create_timerfd()),
       timerfd_channel_(loop, timerfd_),
-      timers_()
+      timers_(),
+      calling_expired_timers_(false)
 {
     timerfd_channel_.set_read_callback(std::bind(&Timer_Queue::handle_read, this));
     timerfd_channel_.enable_reading();
@@ -85,18 +86,29 @@ void Timer_Queue::add_timer_in_loop(Timer* timer)
 
 std::vector<Timer_Queue::Entry> Timer_Queue::get_expired(Timestamp now)
 {
+    assert(timers_.size() == active_timers_.size());
     std::vector<Entry> expired;
-    Entry border = std::make_pair(now, reinterpret_cast<Timer*>(UINTPTR_MAX));
-    Timer_List::iterator ite = timers_.lower_bound(border);
-    assert(ite == timers_.end() || now < ite->first);
-    std::copy(timers_.begin(), ite, back_inserter(expired));
-    timers_.erase(timers_.begin(), ite);
+    Entry sentry(now, reinterpret_cast<Timer*>(UINTPTR_MAX));
+    Timer_List::iterator end = timers_.lower_bound(sentry);
+    assert(end == timers_.end() || now < end->first);
+    std::copy(timers_.begin(), end, back_inserter(expired));
+    timers_.erase(timers_.begin(), end);
+
+    for (const Entry& it : expired)
+    {
+        Active_Timer timer(it.second, it.second->sequence());
+        size_t n = active_timers_.erase(timer);
+        assert(n == 1); (void)n;
+    }
+
+    assert(timers_.size() == active_timers_.size());
     return expired;
 }
 
 bool Timer_Queue::insert(Timer* timer)
 {
     loop_->assert_in_loop_thread();
+    assert(timers_.size() == active_timers_.size());
     bool earliest = false;
     Timestamp when = timer->expiration();
     Timer_List::iterator ite = timers_.begin();
@@ -107,6 +119,11 @@ bool Timer_Queue::insert(Timer* timer)
         auto result = timers_.emplace(when, timer);
         assert(result.second);
     }
+    {
+        auto result = active_timers_.emplace(timer, timer->sequence());
+        assert(result.second);
+    }
+    assert(timers_.size() == active_timers_.size());
     return earliest;
 }
 
@@ -116,13 +133,54 @@ void Timer_Queue::handle_read()
     Timestamp now(Timestamp::now());
     read_timerfd(timerfd_, now);
     std::vector<Entry> expired = get_expired(now);
+    calling_expired_timers_ = true;
+    canceling_timers_.clear();
     for (const Entry& ite : expired)
         ite.second->run();
 
+    calling_expired_timers_ = false;
     reset(expired, now);
 }
 
 void Timer_Queue::reset(const std::vector<Entry>& expired, Timestamp now)
 {
+    for (const Entry& it : expired) {
+        Active_Timer timer(it.second, it.second->sequence());
+        if (it.second->repeat() && canceling_timers_.find(timer) == canceling_timers_.end()) {
+            it.second->restart(now);
+            insert(it.second);
+        }
+        else {
+            delete it.second; // FIXME: no delete please
+        }
+    }
 
+    Timestamp next_expire;
+    if (!timers_.empty())
+        next_expire = timers_.begin()->second->expiration();
+
+    if (next_expire.valid())
+        reset_timerfd(timerfd_, next_expire);
+}
+
+void Timer_Queue::cancel(Timer_ID timer_id)
+{
+    loop_->run_in_loop(std::bind(&Timer_Queue::cancel_in_loop, this, timer_id));
+}
+
+void Timer_Queue::cancel_in_loop(Timer_ID timer_id)
+{
+    loop_->assert_in_loop_thread();
+    assert(timers_.size() == active_timers_.size());
+    Active_Timer timer(timer_id.timer_, timer_id.sequence_);
+    Active_Timer_Set::iterator ite = active_timers_.find(timer);
+    if (ite != active_timers_.end()) {
+        size_t n = timers_.erase(Entry(ite->first->expiration(), ite->first));
+        assert(n == 1);
+        delete ite->first;
+        active_timers_.erase(ite);
+    } else if (calling_expired_timers_)
+        canceling_timers_.insert(timer);
+
+    assert(timers_.size() == active_timers_.size());
 }
