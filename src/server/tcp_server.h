@@ -2,6 +2,7 @@
 
 #include "base/noncopyable.h"
 #include "base/timestamp.h"
+#include "event_loop_thread_pool.h"
 #include <atomic>
 #include <functional>
 #include <map>
@@ -26,6 +27,7 @@ public:
     Tcp_Server(Event_Loop* loop, const sockaddr_in& listen_addr, const std::string& name);
     ~Tcp_Server();
 
+    void set_thread_num(int num_threads) { thread_pool_->set_thread_num(num_threads); }
     void start();
     void set_connection_callback(const Connection_Callback& cb) { connection_callback_ = cb; }
     void set_message_callback(const Message_Callback& cb) { message_callback_ = cb; }
@@ -38,7 +40,8 @@ private:
     typedef std::map<std::string, Tcp_Connection_Ptr> Connection_Map;
     Event_Loop* loop_;
     const std::string name_;
-    std::shared_ptr<Acceptor> acceptor_;
+    std::unique_ptr<Acceptor> acceptor_;
+    std::shared_ptr<Event_Loop_Thread_Pool> thread_pool_;
     Connection_Callback connection_callback_;
     Message_Callback message_callback_;
     std::atomic_bool started_;

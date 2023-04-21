@@ -3,6 +3,7 @@
 #include "channel.h"
 #include "tcp_connection.h"
 #include "event_loop.h"
+#include "event_loop_thread_pool.h"
 #include <arpa/inet.h>
 #include <functional>
 #include <string.h>
@@ -33,6 +34,7 @@ Tcp_Server::Tcp_Server(Event_Loop* loop,
     : loop_(loop),
       name_(name),
       acceptor_(new Acceptor(loop, listenAddr)),
+      thread_pool_(new Event_Loop_Thread_Pool(loop)),
       connection_callback_(default_connection_callback),
       message_callback_(default_message_callback),
       started_(false),
@@ -63,6 +65,7 @@ void Tcp_Server::start()
 {
     if (started_.exchange(true) == false)
     {
+        thread_pool_->start();
         assert(!acceptor_->listenning());
         loop_->run_in_loop(
             std::bind(&Acceptor::listen, acceptor_.get()));
@@ -95,13 +98,14 @@ void Tcp_Server::new_connection(int sockfd, const sockaddr_in& peer_addr)
         printf("ERROR: Tcp_Connection::new_connection - sockets::getLocalAddr\n");
         // LOG_SYSERR << "sockets::getLocalAddr";
     }
+    Event_Loop* io_loop = thread_pool_->get_next_loop();
     Tcp_Connection_Ptr conn(
-        new Tcp_Connection(loop_, conn_name, sockfd, local_addr, peer_addr));
+        new Tcp_Connection(io_loop, conn_name, sockfd, local_addr, peer_addr));
     connections_[conn_name] = conn;
     conn->set_connection_callback(connection_callback_);
     conn->set_message_callback(message_callback_);
     conn->set_close_callback(std::bind(&Tcp_Server::remove_connection, this, std::placeholders::_1));
-    conn->connect_established();
+    io_loop->run_in_loop(std::bind(&Tcp_Connection::connect_established, conn));
 }
 
 void Tcp_Server::remove_connection(const Tcp_Connection_Ptr& conn)
