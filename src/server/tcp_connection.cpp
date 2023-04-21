@@ -57,16 +57,35 @@ void Tcp_Connection::handle_read(Timestamp receive_time)
 
 void Tcp_Connection::handle_write()
 {
-
+    loop_->assert_in_loop_thread();
+    if (channel_->is_writing()) {
+        ssize_t n = ::write(channel_->fd(), output_buffer_.peek(), output_buffer_.readable_bytes());
+        if (n > 0) {
+            output_buffer_.retrieve(n);
+            if (output_buffer_.readable_bytes() == 0) {
+                channel_->disable_writing();
+                if (state_ == k_disconnecting)
+                    shut_down_in_loop();
+            }
+        } else {
+            printf("ERROR: Tcp_Connection::handleWrite\n");
+            // LOG_SYSERR << "TcpConnection::handleWrite";
+        }
+    } else {
+        printf("Connection fd = %d is down, no more writing\n", channel_->fd());
+        // LOG_TRACE << "Connection fd = " << channel_->fd() << " is down, no more writing";
+    }
 }
 
 void Tcp_Connection::handle_close()
 {
     loop_->assert_in_loop_thread();
-    printf("Tcp_Connection::handle_close state = %d\n", state_.load());
-    // LOG_TRACE << "Tcp_Connection::handle_close state = " << state_;
-    assert(state_ == k_connected);
+    printf("Tcp_Connection::handle_close fd = %d, state = %d\n", channel_->fd(), state_.load());
+    // LOG_TRACE << "fd = " << channel_->fd() << " state = " << stateToString();
+    assert(state_ == k_connected || state_ == k_disconnecting);
+    set_state(k_disconnected);
     channel_->disable_all();
+    connection_callback_(shared_from_this());
     close_callback_(shared_from_this());
 }
 
@@ -88,11 +107,11 @@ void Tcp_Connection::handle_error()
 void Tcp_Connection::connect_destroyed()
 {
     loop_->assert_in_loop_thread();
-    assert(state_ == k_connected);
-    set_state(k_disconnected);
-    channel_->disable_all();
-    connection_callback_(shared_from_this());
-    loop_->remove_channel(channel_.get());
+    if (state_.exchange(k_disconnected) == k_connected) {
+        channel_->disable_all();
+        connection_callback_(shared_from_this());
+    }
+    channel_->remove();
 }
 
 void Tcp_Connection::connect_established()
@@ -103,4 +122,60 @@ void Tcp_Connection::connect_established()
     // channel_->tie(shared_from_this());
     channel_->enable_reading();
     connection_callback_(shared_from_this());
+}
+
+void Tcp_Connection::shutdown()
+{
+    if (state_.exchange(k_disconnecting) == k_connected) {
+        loop_->run_in_loop(std::bind(&Tcp_Connection::shut_down_in_loop, shared_from_this()));
+    }
+}
+
+void Tcp_Connection::shut_down_in_loop()
+{
+    loop_->assert_in_loop_thread();
+    if (!channel_->is_writing()) {
+        if (::shutdown(socket_fd_, SHUT_WR) < 0) {
+            printf("ERROR: Tcp_Connection::shut_down_in_loop - shutdown\n");
+            // LOG_SYSERR << "sockets::shutdownWrite";
+        }
+    }
+}
+
+void Tcp_Connection::send(const std::string& message)
+{
+    if (state_ == k_connected) {
+        if (loop_->is_in_loop_thread())
+            send_in_loop(message);
+        else
+            loop_->run_in_loop(std::bind(&Tcp_Connection::send_in_loop, shared_from_this(), message));
+    }
+}
+
+void Tcp_Connection::send_in_loop(const std::string& message)
+{
+    loop_->assert_in_loop_thread();
+    ssize_t nwrote = 0;
+    if (!channel_->is_writing() && output_buffer_.readable_bytes() == 0) {
+        nwrote = ::write(channel_->fd(), message.data(), message.size());
+        if (nwrote >= 0) {
+            if (static_cast<size_t>(nwrote) < message.size()) {
+                printf("I am going to write more data\n");
+                // LOG_TRACE << "I am going to write more data";
+            }
+        } else {
+            nwrote = 0;
+            if (errno != EWOULDBLOCK) {
+                printf("ERROR: Tcp_Conn - send_in_loop\n");
+                // LOG_SYSERR << "Tcp_Connection::send_in_loop";
+            }
+        }
+    }
+
+    assert(nwrote >= 0);
+    if (static_cast<size_t>(nwrote) < message.size()) {
+        output_buffer_.append(message.data()+nwrote, message.size()-nwrote);
+        if (!channel_->is_writing())
+            channel_->enable_writing();
+    }
 }

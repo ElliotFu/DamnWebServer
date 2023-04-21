@@ -46,7 +46,7 @@ public:
 
     void disable_writing()
     {
-        events_ &= !k_write_event;
+        events_ &= ~k_write_event;
         update();
     }
 
@@ -55,6 +55,8 @@ public:
         events_ = k_none_event;
         update();
     }
+
+    bool is_writing() const { return events_ & k_write_event; }
 
     int index() { return index_; }
     void set_index(int idx) { index_ = idx; }

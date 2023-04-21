@@ -15,4 +15,7 @@ include_directories(${PROJECT_SOURCE_DIR}/src)
 add_executable(tcp_server_receive_test tcp_server_receive_test.cpp)
 target_link_libraries(tcp_server_receive_test server)
 
+add_executable(tcp_server_write_test tcp_server_write_test.cpp)
+target_link_libraries(tcp_server_write_test server)
+
 add_executable(tcp_client tcp_client.cpp)

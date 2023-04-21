@@ -43,6 +43,9 @@ public:
     void connect_established();
     void connect_destroyed();
 
+    void send(const std::string& message);
+    void shutdown();
+
 private:
     enum State_E { k_disconnected, k_connecting, k_connected, k_disconnecting };
 
@@ -51,6 +54,8 @@ private:
     void handle_write();
     void handle_close();
     void handle_error();
+    void send_in_loop(const std::string& message);
+    void shut_down_in_loop();
 
     Event_Loop* loop_;
     std::string name_;
