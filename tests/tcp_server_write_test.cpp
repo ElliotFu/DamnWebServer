@@ -1,6 +1,6 @@
-#include "server/tcp_server.h"
-#include "server/event_loop.h"
-#include "server/tcp_connection.h"
+#include "net/tcp_server.h"
+#include "net/event_loop.h"
+#include "net/tcp_connection.h"
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>

@@ -1,5 +1,5 @@
-#include "server/event_loop.h"
-#include "server/event_loop_thread.h"
+#include "net/event_loop.h"
+#include "net/event_loop_thread.h"
 #include <stdio.h>
 
 void run_in_thread()
