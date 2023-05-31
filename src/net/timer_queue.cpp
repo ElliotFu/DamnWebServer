@@ -4,6 +4,7 @@
 #include <cassert>
 #include <sys/timerfd.h>
 #include <string.h>
+#include <unistd.h>
 
 int create_timerfd()
 {

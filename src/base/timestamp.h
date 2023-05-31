@@ -1,9 +1,8 @@
 #pragma once
 
-#include <boost/operators.hpp>
+#include <string>
 
-class Timestamp : public boost::equality_comparable<Timestamp>,
-                  public boost::less_than_comparable<Timestamp>
+class Timestamp
 {
 public:
     Timestamp() : mircoseconds_since_epoch_(0) {}

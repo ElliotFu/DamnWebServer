@@ -4,6 +4,7 @@
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 void onConnection(const Tcp_Server::Tcp_Connection_Ptr& conn)
 {

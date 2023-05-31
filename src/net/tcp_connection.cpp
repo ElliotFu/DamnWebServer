@@ -3,6 +3,7 @@
 #include "event_loop.h"
 #include <netinet/tcp.h>
 #include <string.h>
+#include <unistd.h>
 
 Tcp_Connection::Tcp_Connection(Event_Loop* loop,
                                const std::string& name_arg,
