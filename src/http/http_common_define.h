@@ -7,7 +7,7 @@ enum Version
     UNKNOWN, HTTP10, HTTP11
 };
 
-std::string version_to_string(Version v)
+inline std::string version_to_string(Version v)
 {
     std::string result;
     switch (v)

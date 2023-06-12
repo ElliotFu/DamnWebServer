@@ -19,3 +19,6 @@ add_executable(loop_thread_pool_test loop_thread_pool_test.cpp)
 target_link_libraries(loop_thread_pool_test net)
 
 # add_executable(tcp_client tcp_client.cpp)
+
+add_executable(http_test http_test.cpp)
+target_link_libraries(http_test http)

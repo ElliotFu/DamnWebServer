@@ -1,10 +1,10 @@
 #include "http_response.h"
-#include "src/net/buffer.h"
+#include "net/buffer.h"
 
 void Http_Response::append_to_buffer(Buffer* output) const
 {
   char buf[32];
-  snprintf(buf, sizeof buf, "HTTP/%s %d ", version_to_string(version_), status_code_);
+  snprintf(buf, sizeof buf, "HTTP/%s %d ", version_to_string(version_).c_str(), status_code_);
   output->append(buf);
   output->append(status_message_);
   output->append("\r\n");

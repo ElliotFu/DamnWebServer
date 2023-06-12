@@ -1,7 +1,7 @@
 #pragma once
 
 #include "http_common_define.h"
-#include "src/base/timestamp.h"
+#include "base/timestamp.h"
 
 #include <cassert>
 #include <map>

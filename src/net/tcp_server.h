@@ -27,6 +27,8 @@ public:
     Tcp_Server(Event_Loop* loop, const sockaddr_in& listen_addr, const std::string& name);
     ~Tcp_Server();
 
+    Event_Loop* get_loop() const { return loop_; }
+
     void set_thread_num(int num_threads) { thread_pool_->set_thread_num(num_threads); }
     void start();
     void set_connection_callback(const Connection_Callback& cb) { connection_callback_ = cb; }

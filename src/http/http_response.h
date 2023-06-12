@@ -48,8 +48,8 @@ public:
 private:
     std::map<string, string> headers_;
     Http_Status_Code status_code_;
-    Version version_;
     string status_message_;
     bool close_connection_;
+    Version version_;
     string body_;
 };

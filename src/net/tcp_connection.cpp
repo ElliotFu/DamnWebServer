@@ -149,19 +149,46 @@ void Tcp_Connection::send(const std::string& message)
     if (state_ == k_connected) {
         if (loop_->is_in_loop_thread())
             send_in_loop(message);
-        else
-            loop_->run_in_loop(std::bind(&Tcp_Connection::send_in_loop, shared_from_this(), message));
+        else {
+            void (Tcp_Connection::*fp)(const string&) = &Tcp_Connection::send_in_loop;
+            loop_->run_in_loop(std::bind(fp, shared_from_this(), message));
+        }
+    }
+}
+
+void Tcp_Connection::send(Buffer* buf)
+{
+    if (state_ == k_connected)
+    {
+        if (loop_->is_in_loop_thread()) {
+            send_in_loop(buf->peek(), buf->readable_bytes());
+            buf->retrieve_all();
+        } else {
+            void (Tcp_Connection::*fp)(const char*, size_t) = &Tcp_Connection::send_in_loop;
+            loop_->run_in_loop(std::bind(fp, shared_from_this(), buf->peek(), buf->readable_bytes()));
+        }
     }
 }
 
 void Tcp_Connection::send_in_loop(const std::string& message)
 {
+    send_in_loop(message.data(), message.size());
+}
+
+void Tcp_Connection::send_in_loop(const char* data, size_t len)
+{
     loop_->assert_in_loop_thread();
     ssize_t nwrote = 0;
+    bool pipe_or_reset = false;
+    if (state_.load() == k_disconnected) {
+        // LOG_ERROR << "disconnected, give up writing.";
+        return;
+    }
+
     if (!channel_->is_writing() && output_buffer_.readable_bytes() == 0) {
-        nwrote = ::write(channel_->fd(), message.data(), message.size());
+        nwrote = ::write(channel_->fd(), data, len);
         if (nwrote >= 0) {
-            if (static_cast<size_t>(nwrote) < message.size()) {
+            if (static_cast<size_t>(nwrote) < len) {
                 printf("I am going to write more data\n");
                 // LOG_TRACE << "I am going to write more data";
             }
@@ -170,13 +197,16 @@ void Tcp_Connection::send_in_loop(const std::string& message)
             if (errno != EWOULDBLOCK) {
                 printf("ERROR: Tcp_Conn - send_in_loop\n");
                 // LOG_SYSERR << "Tcp_Connection::send_in_loop";
+                if (errno == EPIPE || errno == ECONNRESET) {
+                    pipe_or_reset = true;
+                }
             }
         }
     }
 
     assert(nwrote >= 0);
-    if (static_cast<size_t>(nwrote) < message.size()) {
-        output_buffer_.append(message.data()+nwrote, message.size()-nwrote);
+    if (!pipe_or_reset && static_cast<size_t>(nwrote) < len) {
+        output_buffer_.append(data+nwrote, len-nwrote);
         if (!channel_->is_writing())
             channel_->enable_writing();
     }

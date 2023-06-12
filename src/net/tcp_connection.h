@@ -44,6 +44,7 @@ public:
     void connect_destroyed();
 
     void send(const std::string& message);
+    void send(Buffer* buf);
     void shutdown();
 
     void set_tcp_no_delay(bool on);
@@ -57,6 +58,7 @@ private:
     void handle_close();
     void handle_error();
     void send_in_loop(const std::string& message);
+    void send_in_loop(const char* data, size_t len);
     void shut_down_in_loop();
 
     Event_Loop* loop_;
