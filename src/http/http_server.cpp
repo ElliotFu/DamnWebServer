@@ -1,5 +1,7 @@
 #include "http_server.h"
 
+#include "base/log/logger.h"
+
 #include "http_common_define.h"
 #include "http_context.h"
 #include "http_response.h"
@@ -38,9 +40,9 @@ void Http_Server::start()
 void Http_Server::on_connection(const Tcp_Server::Tcp_Connection_Ptr& conn)
 {
     if (conn->connected()) {
-        // LOG_INFO << "New connection arrived.";
+        LOG_INFO << "New connection arrived.";
     } else {
-        // LOG_INFO << "Connection closed.";
+        LOG_INFO << "Connection closed.";
     }
 }
 
@@ -48,16 +50,16 @@ void Http_Server::on_message(const Tcp_Server::Tcp_Connection_Ptr& conn,
                              Buffer* buf,
                              Timestamp receive_time)
 {
-    // LOG_INFo << "Http server::on message";
+    LOG_INFO << "Http server::on message";
     std::unique_ptr<Http_Context> context(new Http_Context());
     if (!context->parse_request(buf, receive_time)) {
-        // LOG_INFO << "Parse request failed.";
+        LOG_INFO << "Parse request failed.";
         conn->send("HTTP/1.1 400 Bad Request\r\n\r\n");
         conn->shutdown();
     }
 
     if (context->got_all()) {
-        // LOG_INFO << "Parse request success.";
+        LOG_INFO << "Parse request success.";
         on_request(conn, context->request());
         context->reset();
     }

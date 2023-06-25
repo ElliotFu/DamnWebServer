@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <string.h>
 
 constexpr int SMALL_BUFFER_SIZE = 4000;
@@ -10,7 +11,7 @@ class Fixed_Buffer
 {
 public:
     Fixed_Buffer() : cur_(data_) {}
-    ~Fixed_Buffer() = default
+    ~Fixed_Buffer() = default;
 
     void append(const char* buf, size_t len)
     {

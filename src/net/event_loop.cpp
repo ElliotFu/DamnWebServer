@@ -3,6 +3,8 @@
 #include "poller.h"
 #include "timer_queue.h"
 
+#include "base/log/logger.h"
+
 #include <cassert>
 #include <poll.h>
 #include <sys/eventfd.h>
@@ -60,6 +62,7 @@ void Event_Loop::loop()
     assert_in_loop_thread();
     looping_ = true;
     quit_ = false;
+    LOG_INFO << "EventLoop " << this << " start looping";
     while (!quit_) {
         active_channels_.clear();
         poll_return_time_ = poller_->poll(k_poll_time_ms, &active_channels_);
@@ -69,7 +72,7 @@ void Event_Loop::loop()
         do_pending_functors();
     }
 
-    // LOG_TRACE << "EventLoop" << this << " stop looping";
+    LOG_INFO << "EventLoop " << this << " stop looping";
     looping_ = false;
 }
 

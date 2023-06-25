@@ -4,6 +4,7 @@
 #include "tcp_connection.h"
 #include "event_loop.h"
 #include "event_loop_thread_pool.h"
+#include "base/log/logger.h"
 #include <arpa/inet.h>
 #include <functional>
 #include <string.h>
@@ -84,9 +85,9 @@ void Tcp_Server::new_connection(int sockfd, const sockaddr_in& peer_addr)
     inet_ntop(AF_INET, &peer_addr.sin_addr, ip, INET_ADDRSTRLEN);
     printf("Tcp_Server::new_connection [%s] - new connection [%s] from %s:%d\n",
             name_.c_str(), conn_name.c_str(), ip, ntohs(peer_addr.sin_port));
-    // LOG_INFO << "TcpServer::newConnection [" << name_
-    //          << "] - new connection [" << connName
-    //          << "] from " << peerAddr.toIpPort();
+    LOG_INFO << "TcpServer::newConnection [" << name_
+             << "] - new connection [" << conn_name
+             << "] from " << ip << ':' << ntohs(peer_addr.sin_port);
 
     sockaddr_in local_addr;
     memset(&local_addr, 0, sizeof local_addr);
@@ -117,8 +118,8 @@ void Tcp_Server::remove_connection_in_loop(const Tcp_Connection_Ptr& conn)
 {
     loop_->assert_in_loop_thread();
     printf("Tcp_Server::remove_connection_in_loop [%s] - connection %s\n", name_.c_str(), conn->name().c_str());
-    // LOG_INFO << "TcpServer::removeConnectionInLoop [" << name_
-    //          << "] - connection " << conn->name();
+    LOG_INFO << "TcpServer::removeConnectionInLoop [" << name_
+             << "] - connection " << conn->name();
     size_t n = connections_.erase(conn->name());
     assert(n == 1);
     Event_Loop* io_loop = conn->get_loop();

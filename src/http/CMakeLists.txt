@@ -7,5 +7,5 @@ set(HTTP_SRC
 include_directories(${PROJECT_SOURCE_DIR}/src)
 
 add_library(http SHARED ${HTTP_SRC})
-target_link_libraries(http base net)
+target_link_libraries(http base net log)
 set_target_properties(http PROPERTIES OUTPUT_NAME "http")

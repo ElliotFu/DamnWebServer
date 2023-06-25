@@ -22,3 +22,6 @@ target_link_libraries(loop_thread_pool_test net)
 
 add_executable(http_test http_test.cpp)
 target_link_libraries(http_test http)
+
+add_executable(log_test async_logging_test.cpp)
+target_link_libraries(log_test log)

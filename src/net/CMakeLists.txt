@@ -16,5 +16,5 @@ set(SERVER_SRC
 include_directories(${PROJECT_SOURCE_DIR}/src)
 
 add_library(net SHARED ${SERVER_SRC})
-target_link_libraries(net base)
+target_link_libraries(net base log)
 set_target_properties(net PROPERTIES OUTPUT_NAME "net")
